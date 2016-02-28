@@ -1,118 +1,153 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- */
+'use strict';
 
-import React, {
-  AppRegistry,
-  Component,
-  Image,
-  ListView,
+var React = require('react-native');
+var {
+  DatePickerIOS,
   StyleSheet,
   Text,
+  TextInput,
   View,
-} from 'react-native';
+} = React;
 
-var API_KEY = '7waqfqbprs7pajbz28mqf6vz';
-var API_URL = 'http://api.rottentomatoes.com/api/public/v1.0/lists/movies/in_theaters.json';
-var PAGE_SIZE = 25;
-var PARAMS = '?apikey=' + API_KEY + '&page_limit=' + PAGE_SIZE;
-var REQUEST_URL = API_URL + PARAMS;
-
-class JSFatigueEliminator extends Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      dataSource: new ListView.DataSource({
-        rowHasChanged: (row1, row2) => row1 !== row2,
-      }),
-      loaded: false,
+var JSFatigueEliminator = React.createClass({
+  getDefaultProps: function () {
+    return {
+      date: new Date(),
+      timeZoneOffsetInHours: (-1) * (new Date()).getTimezoneOffset() / 60,
     };
-  }
+  },
 
-  componentDidMount() {
-    this.fetchData();
-  }
+  getInitialState: function() {
+    return {
+      date: this.props.date,
+      timeZoneOffsetInHours: this.props.timeZoneOffsetInHours,
+    };
+  },
 
-  fetchData() {
-    fetch(REQUEST_URL)
-      .then((response) => response.json())
-      .then((responseData) => {
-        this.setState({
-          dataSource: this.state.dataSource.cloneWithRows(responseData.movies),
-          loaded: true,
-        });
-      })
-      .done();
-  }
+  onDateChange: function(date) {
+    this.setState({date: date});
+  },
 
-  render() {
-    if (!this.state.loaded) {
-      return this.renderLoadingView();
+  onTimezoneChange: function(event) {
+    var offset = parseInt(event.nativeEvent.text, 10);
+    if (isNaN(offset)) {
+      return;
     }
+    this.setState({timeZoneOffsetInHours: offset});
+  },
 
+  render: function() {
+    // Ideally, the timezone input would be a picker rather than a
+    // text input, but we don't have any pickers yet :(
     return (
-      <ListView
-        dataSource={this.state.dataSource}
-        renderRow={this.renderMovie}
-        style={styles.listView}
-      />
+      <View>
+        <WithLabel label="Value:">
+          <Text>{
+            this.state.date.toLocaleDateString() +
+            ' ' +
+            this.state.date.toLocaleTimeString()
+          }</Text>
+        </WithLabel>
+        <WithLabel label="Timezone:">
+          <TextInput
+            onChange={this.onTimezoneChange}
+            style={styles.textinput}
+            value={this.state.timeZoneOffsetInHours.toString()}
+          />
+          <Text> hours from UTC</Text>
+        </WithLabel>
+        <Heading label="Date + time picker" />
+        <DatePickerIOS
+          date={this.state.date}
+          mode="datetime"
+          timeZoneOffsetInMinutes={this.state.timeZoneOffsetInHours * 60}
+          onDateChange={this.onDateChange}
+        />
+        <Heading label="Date picker" />
+        <DatePickerIOS
+          date={this.state.date}
+          mode="date"
+          timeZoneOffsetInMinutes={this.state.timeZoneOffsetInHours * 60}
+          onDateChange={this.onDateChange}
+        />
+        <Heading label="Time picker, 10-minute interval" />
+        <DatePickerIOS
+          date={this.state.date}
+          mode="time"
+          timeZoneOffsetInMinutes={this.state.timeZoneOffsetInHours * 60}
+          onDateChange={this.onDateChange}
+          minuteInterval={10}
+        />
+      </View>
+    );
+  },
+});
+
+var WithLabel = React.createClass({
+  render: function() {
+    return (
+      <View style={styles.labelContainer}>
+        <View style={styles.labelView}>
+          <Text style={styles.label}>
+            {this.props.label}
+          </Text>
+        </View>
+        {this.props.children}
+      </View>
     );
   }
+});
 
-  renderLoadingView() {
+var Heading = React.createClass({
+  render: function() {
     return (
-      <View style={styles.container}>
-        <Text>
-          Loading movies...
+      <View style={styles.headingContainer}>
+        <Text style={styles.heading}>
+          {this.props.label}
         </Text>
       </View>
     );
   }
-
-  renderMovie(movie) {
-    return (
-      <View style={styles.container}>
-        <Image
-          source={{uri: movie.posters.thumbnail}}
-          style={styles.thumbnail}
-        />
-        <View style={styles.rightContainer}>
-          <Text style={styles.title}>{movie.title}</Text>
-          <Text style={styles.year}>{movie.year}</Text>
-        </View>
-      </View>
-    );
-  }
-}
-
-var styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F5FCFF',
-  },
-  rightContainer: {
-    flex: 1,
-  },
-  title: {
-    fontSize: 20,
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  year: {
-    textAlign: 'center',
-  },
-  thumbnail: {
-    width: 53,
-    height: 81,
-  },
-  listView: {
-    paddingTop: 20,
-    backgroundColor: '#F5FCFF',
-  },
 });
 
-AppRegistry.registerComponent('JSFatigueEliminator', () => JSFatigueEliminator);
+exports.displayName = (undefined: ?string);
+exports.title = '<JSFatigueEliminator>';
+exports.description = 'Select dates and times using the native UIDatePicker.';
+exports.examples = [
+{
+  title: '<JSFatigueEliminator>',
+  render: function(): ReactElement {
+    return <JSFatigueEliminator />;
+  },
+}];
+
+var styles = StyleSheet.create({
+  textinput: {
+    height: 26,
+    width: 50,
+    borderWidth: 0.5,
+    borderColor: '#0f0f0f',
+    padding: 4,
+    fontSize: 13,
+  },
+  labelContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 2,
+  },
+  labelView: {
+    marginRight: 10,
+    paddingVertical: 2,
+  },
+  label: {
+    fontWeight: '500',
+  },
+  headingContainer: {
+    padding: 4,
+    backgroundColor: '#f6f7f8',
+  },
+  heading: {
+    fontWeight: '500',
+    fontSize: 14,
+  },
+});
